@@ -21,5 +21,64 @@ from sklearn.linear_model import LogisticRegression as lr
 
 
 # Your code here
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+
+# Step 1: Read in `df_arrests`
+df_arrests = pd.read_csv('data/df_arrests.csv')
+
+# Step 2: Split data into training and test sets
+df_arrests_train, df_arrests_test = train_test_split(
+    df_arrests, 
+    test_size=0.3, 
+    shuffle=True, 
+    stratify=df_arrests['y'],  # Stratify by the outcome
+    random_state=42  # For reproducibility
+)
+
+# Step 3: Define features and target variable
+features = ['num_fel_arrests_last_year', 'current_charge_felony']
+X_train = df_arrests_train[features]
+y_train = df_arrests_train['y']
+X_test = df_arrests_test[features]
+y_test = df_arrests_test['y']
+
+# Step 4: Create parameter grid for C hyperparameter
+param_grid = {'C': [0.01, 0.1, 1]}
+
+# Step 5: Initialize Logistic Regression model
+lr_model = LogisticRegression()
+
+# Step 6: Initialize GridSearchCV
+gs_cv = GridSearchCV(
+    estimator=lr_model, 
+    param_grid=param_grid, 
+    cv=5,  # 5-fold cross-validation
+    scoring='accuracy'  # Metric to optimize
+)
+
+# Step 7: Fit the model
+gs_cv.fit(X_train, y_train)
+
+# Step 8: Optimal value for C
+best_C = gs_cv.best_params_['C']
+print(f"The optimal value for C is: {best_C}")
+
+# Interpret regularization strength
+if best_C < 0.1:
+    reg_strength = "most regularization"
+elif best_C == 0.1:
+    reg_strength = "in the middle"
+else:
+    reg_strength = "least regularization"
+print(f"Did it have the most or least regularization? Or in the middle? {reg_strength}")
+
+# Step 9: Predict for the test set
+df_arrests_test['pred_lr'] = gs_cv.predict(X_test)
+
+# Step 10: Save results for use in main.py
+df_arrests_test.to_csv('data/df_arrests_test_with_predictions.csv', index=False)
 
 
